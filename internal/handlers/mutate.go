@@ -27,13 +27,19 @@ func handleUpdate(s *store.Store) http.HandlerFunc {
 			Description    *string `json:"description"`
 			RolloutPercent *int    `json:"rollout_percent"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		dec := json.NewDecoder(r.Body)
+		if err := dec.Decode(&body); err != nil {
 			var mbe *http.MaxBytesError
 			if errors.As(err, &mbe) {
 				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
 				return
 			}
 			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if dec.More() {
+			writeError(w, http.StatusBadRequest, "invalid JSON: trailing data")
 			return
 		}
 
