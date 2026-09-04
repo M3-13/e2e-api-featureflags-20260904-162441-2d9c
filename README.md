@@ -86,9 +86,16 @@ GET /flags
 Authorization: Bearer <dein-key>
 ```
 
-Ist `FLAG_API_KEY` nicht gesetzt, erzeugt der Server einen zufälligen
-ephemeren Key und loggt ihn einmal als Warnung — der Server startet niemals
-ungeschützt.
+`FLAG_API_KEY` ist jetzt verpflichtend: Ist die Variable nicht gesetzt, bricht
+der Server sofort mit einer klaren Fehlermeldung ab. Für die lokale Entwicklung
+können Sie einen Platzhalter nutzen, z. B.:
+
+```
+FLAG_API_KEY=dev-only-key go run .
+```
+
+Der Key ist geheim zu halten und darf niemals in Logs oder im Repo abgelegt
+werden.
 
 ## Betrieb & TLS
 

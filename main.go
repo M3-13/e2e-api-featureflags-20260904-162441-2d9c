@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"log"
 	"net/http"
 	"os"
@@ -18,12 +16,7 @@ const ServiceVersion = "1.0.0"
 func main() {
 	apiKey := os.Getenv("FLAG_API_KEY")
 	if apiKey == "" {
-		buf := make([]byte, 32)
-		if _, err := rand.Read(buf); err != nil {
-			log.Fatalf("failed to generate API key: %v", err)
-		}
-		apiKey = hex.EncodeToString(buf)
-		log.Printf("WARNING: FLAG_API_KEY not set; generated ephemeral key %s", apiKey)
+		log.Fatal("FLAG_API_KEY must be set")
 	}
 
 	handlers.ServiceVersion = ServiceVersion
