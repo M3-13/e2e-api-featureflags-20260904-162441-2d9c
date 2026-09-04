@@ -98,6 +98,22 @@ func TestUpdateFlagUnknownKey(t *testing.T) {
 	}
 }
 
+func TestUpdateFlagTrailingGarbage(t *testing.T) {
+	_, mux := newSeededTestMux(t)
+	rr := doRequest(t, mux, http.MethodPut, "/flags/feature-x",
+		`{"enabled":false} trailing-garbage`, "application/json")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d (body %s)", rr.Code, rr.Body.String())
+	}
+	var e map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &e); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	if e["error"] == "" {
+		t.Fatalf("expected error object, got %v", e)
+	}
+}
+
 func TestUpdateFlagTooLarge(t *testing.T) {
 	_, mux := newSeededTestMux(t)
 	big := strings.Repeat("a", 2<<20)

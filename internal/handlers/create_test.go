@@ -139,6 +139,16 @@ func TestCreateFlagWrongContentType(t *testing.T) {
 	}
 }
 
+func TestCreateFlagTrailingGarbage(t *testing.T) {
+	rec := postFlags(t, `{"key":"x","enabled":true} trailing-garbage`, "application/json")
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d (body %s)", rec.Code, rec.Body.String())
+	}
+	if e := decodeErr(t, rec); e["error"] == "" {
+		t.Fatalf("expected error object, got %v", e)
+	}
+}
+
 func TestCreateFlagMissingContentType(t *testing.T) {
 	rec := postFlags(t, `{"key":"feature-x","enabled":true}`, "")
 	if rec.Code != http.StatusUnsupportedMediaType {

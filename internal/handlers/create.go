@@ -30,13 +30,19 @@ func handleCreate(s *store.Store) http.HandlerFunc {
 		r.Body = http.MaxBytesReader(w, r.Body, maxCreateBodyBytes)
 
 		var req createFlagRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		dec := json.NewDecoder(r.Body)
+		if err := dec.Decode(&req); err != nil {
 			var maxBytesErr *http.MaxBytesError
 			if errors.As(err, &maxBytesErr) {
 				writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
 				return
 			}
 			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+
+		if dec.More() {
+			writeError(w, http.StatusBadRequest, "invalid JSON: trailing data")
 			return
 		}
 
