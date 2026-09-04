@@ -21,21 +21,55 @@ func New() *Store {
 }
 
 func (s *Store) Create(f model.Flag) error {
-	return errors.New("not implemented")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, exists := s.flags[f.Key]; exists {
+		return ErrKeyExists
+	}
+	s.flags[f.Key] = f
+	return nil
 }
 
 func (s *Store) List() []model.Flag {
-	return []model.Flag{}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	flags := make([]model.Flag, 0, len(s.flags))
+	for _, f := range s.flags {
+		flags = append(flags, f)
+	}
+	return flags
 }
 
 func (s *Store) Get(key string) (model.Flag, bool) {
-	return model.Flag{}, false
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	f, ok := s.flags[key]
+	return f, ok
 }
 
 func (s *Store) Update(key string, f model.Flag) bool {
-	return false
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	existing, ok := s.flags[key]
+	if !ok {
+		return false
+	}
+	f.Key = existing.Key
+	s.flags[key] = f
+	return true
 }
 
 func (s *Store) Delete(key string) bool {
-	return false
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.flags[key]; !ok {
+		return false
+	}
+	delete(s.flags, key)
+	return true
 }
