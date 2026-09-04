@@ -34,4 +34,7 @@ func TestHealth(t *testing.T) {
 	if got["status"] != "ok" {
 		t.Fatalf("expected status %q, got %q", "ok", got["status"])
 	}
+	if got["version"] == "" {
+		t.Fatalf("expected a version field, got empty")
+	}
 }
