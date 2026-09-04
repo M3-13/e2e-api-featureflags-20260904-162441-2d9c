@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -142,5 +143,48 @@ func TestCreateFlagMissingContentType(t *testing.T) {
 	rec := postFlags(t, `{"key":"feature-x","enabled":true}`, "")
 	if rec.Code != http.StatusUnsupportedMediaType {
 		t.Fatalf("expected 415, got %d", rec.Code)
+	}
+}
+
+func TestCreateFlagCharsetContentType(t *testing.T) {
+	rec := postFlags(t, `{"key":"feature-x","enabled":true}`, "application/json; charset=utf-8")
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d (body %s)", rec.Code, rec.Body.String())
+	}
+
+	flag := decodeFlag(t, rec)
+	if flag.Key != "feature-x" {
+		t.Fatalf("expected key %q, got %q", "feature-x", flag.Key)
+	}
+}
+
+func TestCreateFlagTooManyFlags(t *testing.T) {
+	s := store.New()
+	mux := http.NewServeMux()
+	Register(mux, s)
+
+	mk := func(key string) *httptest.ResponseRecorder {
+		body := `{"key":"` + key + `","enabled":true}`
+		req := httptest.NewRequest(http.MethodPost, "/flags", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		return rec
+	}
+
+	for i := 0; i < 1000; i++ {
+		rec := mk(fmt.Sprintf("flag-%d", i))
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("flag #%d: expected 201, got %d (body %s)", i, rec.Code, rec.Body.String())
+		}
+	}
+
+	overflow := mk("overflow")
+	if overflow.Code != http.StatusInsufficientStorage {
+		t.Fatalf("expected 507, got %d (body %s)", overflow.Code, overflow.Body.String())
+	}
+	if e := decodeErr(t, overflow); e["error"] == "" {
+		t.Fatalf("expected error object, got %v", e)
 	}
 }

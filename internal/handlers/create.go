@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"mime"
 	"net/http"
 
 	"featureflag-api/internal/model"
@@ -20,7 +21,8 @@ type createFlagRequest struct {
 
 func handleCreate(s *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if ct := r.Header.Get("Content-Type"); ct != "application/json" {
+		mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if err != nil || mediaType != "application/json" {
 			writeError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
 			return
 		}
@@ -65,6 +67,10 @@ func handleCreate(s *store.Store) http.HandlerFunc {
 		if err := s.Create(flag); err != nil {
 			if errors.Is(err, store.ErrKeyExists) {
 				writeError(w, http.StatusConflict, "flag already exists")
+				return
+			}
+			if errors.Is(err, store.ErrTooManyFlags) {
+				writeError(w, http.StatusInsufficientStorage, "too many flags")
 				return
 			}
 			writeError(w, http.StatusInternalServerError, "failed to create flag")
