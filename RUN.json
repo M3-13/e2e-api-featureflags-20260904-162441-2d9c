@@ -9,7 +9,11 @@
       "build": [["go", "build", "./..."]],
       "start": ["go", "run", "."],
       "port": 8080,
-      "health": { "path": "/healthz", "expect_status": [200] }
+      "health": { "path": "/healthz", "expect_status": [200] },
+      "env": {
+        "FLAG_API_KEY": { "external": true, "degraded_without": "server generates an ephemeral key and logs a warning" },
+        "ADDR": { "dev": "127.0.0.1:8080" }
+      }
     }
   ]
 }
