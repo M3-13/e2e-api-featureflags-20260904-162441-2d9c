@@ -2,11 +2,28 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 
 	"featureflag-api/internal/model"
 )
+
+func TestCreateTooManyFlags(t *testing.T) {
+	s := New()
+
+	for i := 0; i < maxFlags; i++ {
+		f := model.Flag{Key: fmt.Sprintf("flag-%d", i), Enabled: true}
+		if err := s.Create(f); err != nil {
+			t.Fatalf("Create #%d returned unexpected error: %v", i, err)
+		}
+	}
+
+	extra := model.Flag{Key: "overflow", Enabled: true}
+	if err := s.Create(extra); !errors.Is(err, ErrTooManyFlags) {
+		t.Fatalf("Create beyond maxFlags returned %v, want ErrTooManyFlags", err)
+	}
+}
 
 func TestCreateAndGet(t *testing.T) {
 	s := New()

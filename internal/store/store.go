@@ -9,6 +9,10 @@ import (
 
 var ErrKeyExists = errors.New("flag key already exists")
 
+const maxFlags = 1000
+
+var ErrTooManyFlags = errors.New("too many flags")
+
 type Store struct {
 	mu    sync.RWMutex
 	flags map[string]model.Flag
@@ -24,6 +28,9 @@ func (s *Store) Create(f model.Flag) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if len(s.flags) >= maxFlags {
+		return ErrTooManyFlags
+	}
 	if _, exists := s.flags[f.Key]; exists {
 		return ErrKeyExists
 	}
