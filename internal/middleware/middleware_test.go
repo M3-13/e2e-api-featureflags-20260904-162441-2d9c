@@ -84,3 +84,37 @@ func TestLoggingNoQueryStringOrUser(t *testing.T) {
 		t.Fatalf("log entry missing path: %q", line)
 	}
 }
+
+func TestLoggingStripsControlCharactersFromPath(t *testing.T) {
+	var buf bytes.Buffer
+	prev := log.Writer()
+	log.SetOutput(&buf)
+	defer log.SetOutput(prev)
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := Logging(next)
+
+	req := httptest.NewRequest(http.MethodGet, "/flags%0Afoo", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	got := buf.String()
+	lines := strings.Split(strings.TrimSpace(got), "\n")
+	if len(lines) != 1 {
+		t.Fatalf("expected exactly one log entry, got %d: %q", len(lines), got)
+	}
+
+	line := lines[0]
+	if strings.Contains(line, "\n") || strings.Contains(line, "\r") {
+		t.Fatalf("log entry contains newline/control character: %q", line)
+	}
+	for _, r := range req.URL.Path {
+		if r < 0x20 || r == 0x7f {
+			if strings.ContainsRune(line, r) {
+				t.Fatalf("log entry still contains control rune %q: %q", r, line)
+			}
+		}
+	}
+}

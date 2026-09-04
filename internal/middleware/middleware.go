@@ -3,7 +3,9 @@ package middleware
 import (
 	"log"
 	"net/http"
+	"strings"
 	"time"
+	"unicode"
 )
 
 type statusRecorder struct {
@@ -21,6 +23,12 @@ func Logging(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		log.Printf("%s %s %d %s", r.Method, r.URL.Path, rec.status, time.Since(start))
+		cleanPath := strings.Map(func(r rune) rune {
+			if unicode.IsControl(r) {
+				return -1
+			}
+			return r
+		}, r.URL.Path)
+		log.Printf("%s %s %d %s", r.Method, cleanPath, rec.status, time.Since(start))
 	})
 }
